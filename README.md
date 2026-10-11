@@ -101,5 +101,5 @@ jobs:
 ## Development
 
 ```
-GITHUB_REPOSITORY=solvebeam/solvebeam-diagrams-with-mermaid php release.php
+GITHUB_REPOSITORY=solvebeam/solvebeam-diagrams-with-mermaid php deploy.php
 ```
