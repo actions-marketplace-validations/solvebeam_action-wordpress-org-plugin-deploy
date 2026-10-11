@@ -1,0 +1,52 @@
+name: 'WordPress.org plugin deploy'
+description: 'Deploy release to the WordPress plugin directory.'
+author: 'pronamic'
+
+branding:
+  icon: 'upload-cloud'
+  color: 'orange'
+
+inputs:
+  username:
+    description: >
+      WordPress plugin directory Subversion username, remember your username is case sensitive.
+
+      https://developer.wordpress.org/plugins/wordpress-org/how-to-use-subversion/
+
+      If this input is missing, this action will attempt to retrieve the username from the `WORDPRESS_ORG_USERNAME` variable or secret, which can be configured at the organization, repository, or environment level.
+  password:
+    description: >
+      WordPress plugin directory Subversion password.
+
+      If you need to reset your password, go to [login.wordpress.org](https://login.wordpress.org/).
+
+      https://developer.wordpress.org/plugins/wordpress-org/how-to-use-subversion/
+  tag:
+    description: >
+      Release tag name.
+
+      Without an explicit tag name argument, the latest release in the project is used.
+
+      https://docs.github.com/en/repositories/releasing-projects-on-github/about-releases
+  slug:
+    description: >
+      WordPress plugin slug.
+
+      https://developer.wordpress.org/plugins/wordpress-org/plugin-developer-faq/#what-will-my-plugin-permalink-slug-be
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Install Subversion
+      shell: bash
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y subversion
+    - id: deploy
+      run: php ${{ github.action_path }}/deploy.php
+      shell: bash
+      env:
+        INPUT_USERNAME: ${{ inputs.username }}
+        INPUT_PASSWORD: ${{ inputs.password }}
+        INPUT_TAG: ${{ inputs.tag }}
+        INPUT_SLUG: ${{ inputs.slug }}
