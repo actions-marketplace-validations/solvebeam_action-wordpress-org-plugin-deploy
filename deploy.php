@@ -306,7 +306,7 @@ foreach ( $xml->target->entry as $entry ) {
 			);
 
 			break;
-		case 'modified';
+		case 'modified':
 			// Modified entry will be commited.
 
 			break;
