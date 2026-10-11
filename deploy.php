@@ -129,7 +129,13 @@ end_group();
  */
 start_group( '🐙 Check GitHub release' );
 
-run_command( "gh release view $tag --repo $repository" );
+run_command(
+	sprintf(
+		'gh release view %s --repo %s',
+		escapeshellarg( $tag ),
+		escapeshellarg( $repository )
+	)
+);
 
 end_group();
 
@@ -140,7 +146,15 @@ end_group();
  */
 start_group( '📥 Download plugin' );
 
-run_command( "gh release download $tag --pattern '$filename' --dir $archives_dir --repo $repository" );
+run_command(
+	sprintf(
+		'gh release download %s --pattern %s --dir %s --repo %s',
+		escapeshellarg( $tag ),
+		escapeshellarg( $filename ),
+		escapeshellarg( $archives_dir ),
+		escapeshellarg( $repository )
+	)
+);
 
 end_group();
 
@@ -185,7 +199,13 @@ start_group( '🔎 Check tag existence' );
 
 $svn_url_tag = "$svn_url/tags/$version";
 
-$result_code = run_command( "svn info $svn_url_tag", null );
+$result_code = run_command(
+	sprintf(
+		'svn info %s',
+		escapeshellarg( $svn_url_tag )
+	),
+	null
+);
 
 if ( 0 === $result_code ) {
 	echo "There is already a tag for version $version:. $svn_url_tag";
@@ -202,9 +222,13 @@ end_group();
  */
 start_group( '⬇ Subversion checkout WordPress.org' );
 
-run_command( "svn checkout $svn_url $svn_dir --depth immediates" );
-
-run_command( "cd $svn_dir" );
+run_command(
+	sprintf(
+		'svn checkout %s %s --depth immediates',
+		escapeshellarg( $svn_url ),
+		escapeshellarg( $svn_dir )
+	)
+);
 
 chdir( $svn_dir );
 
@@ -254,7 +278,12 @@ foreach ( $xml->target->entry as $entry ) {
 
 	switch ( $wc_status ) {
 		case 'missing':
-			run_command( "svn rm $path" );
+			run_command(
+				sprintf(
+					'svn rm %s',
+					escapeshellarg( $path )
+				)
+			);
 
 			break;
 		case 'modified';
@@ -262,7 +291,12 @@ foreach ( $xml->target->entry as $entry ) {
 
 			break;
 		case 'unversioned':
-			run_command( "svn add $path" );
+			run_command(
+				sprintf(
+					'svn add %s',
+					escapeshellarg( $path )
+				)
+			);
 
 			break;
 		default:
@@ -279,7 +313,14 @@ end_group();
  */
 start_group( '⬆ Subversion commit WordPress.org' );
 
-run_command( "svn commit --message 'Update' --non-interactive --username '$username' --password '$password'" );
+run_command(
+	sprintf(
+		'svn commit --message %s --non-interactive --username %s --password %s',
+		escapeshellarg( 'Update' ),
+		escapeshellarg( $username ),
+		escapeshellarg( $password )
+	)
+);
 
 end_group();
 
@@ -288,7 +329,16 @@ end_group();
  */
 start_group( '🏷️ Subversion tag WordPress.org' );
 
-run_command( "svn cp $svn_url/trunk $svn_url/tags/$version --message 'Tagging version $version' --non-interactive --username '$username' --password '$password'" );
+run_command(
+	sprintf(
+		'svn cp %s %s --message %s --non-interactive --username %s --password %s',
+		escapeshellarg( "$svn_url/trunk" ),
+		escapeshellarg( $svn_url_tag ),
+		escapeshellarg( "Tagging version $version" ),
+		escapeshellarg( $username ),
+		escapeshellarg( $password )
+	)
+);
 
 end_group();
 
@@ -297,6 +347,11 @@ end_group();
  */
 start_group( '🗑️ Clean up' );
 
-run_command( "rm -f -R $work_dir" );
+run_command(
+	sprintf(
+		'rm -f -R %s',
+		escapeshellarg( $work_dir )
+	)
+);
 
 end_group();
