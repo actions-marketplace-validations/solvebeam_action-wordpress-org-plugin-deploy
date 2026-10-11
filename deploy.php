@@ -276,12 +276,22 @@ foreach ( $xml->target->entry as $entry ) {
 
 	$wc_status = (string) $entry->{'wc-status'}['item'];
 
+	/**
+	 * Peg revision.
+	 *
+	 * Subversion interprets everything after the last at sign in a path as
+	 * a peg revision, so a file like `icon@2x.png` fails with “a peg revision
+	 * is not allowed here”. Appending an at sign to the path, which results
+	 * in an empty peg revision, keeps the at signs in the filename intact.
+	 *
+	 * @link https://svnbook.red-bean.com/en/1.7/svn.advanced.pegrevs.html
+	 */
 	switch ( $wc_status ) {
 		case 'missing':
 			run_command(
 				sprintf(
 					'svn rm %s',
-					escapeshellarg( $path )
+					escapeshellarg( $path . '@' )
 				)
 			);
 
@@ -294,7 +304,7 @@ foreach ( $xml->target->entry as $entry ) {
 			run_command(
 				sprintf(
 					'svn add %s',
-					escapeshellarg( $path )
+					escapeshellarg( $path . '@' )
 				)
 			);
 
