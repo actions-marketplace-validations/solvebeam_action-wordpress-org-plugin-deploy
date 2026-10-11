@@ -30,11 +30,11 @@ This way, the WordPress login details can be managed in one place and you don't 
 
 #### Screenshot of GitHub organization actions variables settings
 
-![Screenshot of GitHub organization actions variables settings.](documentation/github.com_organizations_solvebeam_settings_variables.png)
+![Screenshot of GitHub organization actions variables settings.](documentation/github.com_organizations_solvebeam_settings_variables_actions-screenshot-studio-fs8.png)
 
 #### Screenshot of GitHub organization actions secrets settings
 
-![Screenshot of GitHub organization actions secrets settings.](documentation/github.com_organizations_solvebeam_settings_secrets.png)
+![Screenshot of GitHub organization actions secrets settings.](documentation/github.com_organizations_solvebeam_settings_secrets_actions-screenshot-studio-fs8.png)
 
 ### Environments
 
