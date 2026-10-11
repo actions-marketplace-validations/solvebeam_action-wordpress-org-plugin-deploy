@@ -279,10 +279,21 @@ foreach ( $xml->target->entry as $entry ) {
 	/**
 	 * Peg revision.
 	 *
-	 * Subversion interprets everything after the last at sign in a path as
-	 * a peg revision, so a file like `icon@2x.png` fails with “a peg revision
-	 * is not allowed here”. Appending an at sign to the path, which results
-	 * in an empty peg revision, keeps the at signs in the filename intact.
+	 * A path can point to different files over time, because files can be
+	 * renamed, deleted or replaced. Subversion therefore allows a revision
+	 * to be appended to a path, as in `path@REV`, to identify which file is
+	 * meant: the one that had this path in revision `REV`. This is called
+	 * a peg revision.
+	 *
+	 * Subversion applies this notation to every path argument and treats
+	 * everything after the last at sign as the peg revision. A file like
+	 * `icon@2x.png` is therefore read as the path `icon` with peg revision
+	 * `2x.png`, and `svn add` and `svn rm` fail with “a peg revision is not
+	 * allowed here”.
+	 *
+	 * Because only the last at sign counts, we append one to every path:
+	 * `icon@2x.png@` is read as the path `icon@2x.png` with an empty peg
+	 * revision. This is harmless for paths without an at sign.
 	 *
 	 * @link https://svnbook.red-bean.com/en/1.7/svn.advanced.pegrevs.html
 	 */
