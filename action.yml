@@ -12,8 +12,7 @@ inputs:
       WordPress plugin directory Subversion username, remember your username is case sensitive.
 
       https://developer.wordpress.org/plugins/wordpress-org/how-to-use-subversion/
-
-      If this input is missing, this action will attempt to retrieve the username from the `WORDPRESS_ORG_USERNAME` variable or secret, which can be configured at the organization, repository, or environment level.
+    required: true
   password:
     description: >
       WordPress plugin directory Subversion password.
@@ -21,18 +20,21 @@ inputs:
       If you need to reset your password, go to [login.wordpress.org](https://login.wordpress.org/).
 
       https://developer.wordpress.org/plugins/wordpress-org/how-to-use-subversion/
+    required: true
   tag:
     description: >
-      Release tag name.
+      Release tag name, with or without a leading `v`.
 
-      Without an explicit tag name argument, the latest release in the project is used.
+      The GitHub release with this tag must contain a `{slug}.{version}.zip` asset and the version must be equal to the stable tag in the `readme.txt` file of the plugin.
 
       https://docs.github.com/en/repositories/releasing-projects-on-github/about-releases
+    required: true
   slug:
     description: >
       WordPress plugin slug.
 
       https://developer.wordpress.org/plugins/wordpress-org/plugin-developer-faq/#what-will-my-plugin-permalink-slug-be
+    required: true
 
 runs:
   using: 'composite'
