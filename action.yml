@@ -1,6 +1,6 @@
 name: 'WordPress.org plugin deploy'
 description: 'Deploy release to the WordPress plugin directory.'
-author: 'pronamic'
+author: 'solvebeam'
 
 branding:
   icon: 'upload-cloud'
