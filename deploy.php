@@ -120,7 +120,6 @@ start_group( 'ℹ️ Release to WordPress.org' );
 
 echo '• ', escape_sequence( '1' ), 'Subversion URL:', escape_sequence( '0' ), ' ', $svn_url, PHP_EOL;
 echo '• ', escape_sequence( '1' ), 'Subversion username:', escape_sequence( '0' ), ' ', $username, PHP_EOL;
-echo '• ', escape_sequence( '1' ), 'Subversion password:', escape_sequence( '0' ), ' ', $password, PHP_EOL;
 
 end_group();
 
