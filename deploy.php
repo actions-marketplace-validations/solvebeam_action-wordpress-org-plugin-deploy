@@ -15,6 +15,27 @@ function format_error( $value ) {
 	return escape_sequence( '31' ) . escape_sequence( '1' ) . 'Error:' . escape_sequence( '0' ) . ' ' . $value;
 }
 
+/**
+ * Exit with error.
+ *
+ * On GitHub Actions the message is printed as an error workflow command, this
+ * also creates an annotation in the summary of the workflow run.
+ *
+ * @link https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-commands#setting-an-error-message
+ * @param string $message
+ * @param int    $result_code
+ * @return never
+ */
+function exit_with_error( $message, $result_code = 1 ) {
+	if ( 'true' === getenv( 'GITHUB_ACTIONS' ) ) {
+		echo '::error::', str_replace( [ '%', "\r", "\n" ], [ '%25', '%0D', '%0A' ], $message ), PHP_EOL;
+	} else {
+		echo format_error( $message ), PHP_EOL;
+	}
+
+	exit( $result_code );
+}
+
 function run_command( $command, $expected_result_code = 0 ) {
 	echo format_command( $command ), PHP_EOL;
 
@@ -54,9 +75,7 @@ function get_required_input( $name ) {
 	$value = get_input( $name );
 
 	if ( false === $value || '' === $value ) {
-		echo format_error( escape_sequence( '90' ) . 'Input required and not supplied:' . escape_sequence( '0' ) . ' ' . $name );
-
-		exit( 1 );
+		exit_with_error( "Input required and not supplied: $name" );
 	}
 
 	return $value;
@@ -175,6 +194,10 @@ end_group();
 /**
  * Parse stable tag.
  */
+if ( ! is_file( $readme_file ) ) {
+	exit_with_error( "The archive $filename does not contain the file $slug/readme.txt." );
+}
+
 $readme_content = file_get_contents( $readme_file );
 
 $pattern = "/Stable tag: (.*)/";
@@ -186,9 +209,7 @@ if ( 1 === preg_match( $pattern, $readme_content, $matches ) ) {
 }
 
 if ( $stable_tag !== $version ) {
-	echo 'Stable tag in readme.txt is not equal to release version.';
-
-	exit( 1 );
+	exit_with_error( "Stable tag in readme.txt ($stable_tag) is not equal to release version ($version)." );
 }
 
 /**
@@ -207,9 +228,7 @@ $result_code = run_command(
 );
 
 if ( 0 === $result_code ) {
-	echo "There is already a tag for version $version:. $svn_url_tag";
-
-	exit( 1 );
+	exit_with_error( "There is already a tag for version $version: $svn_url_tag" );
 }
 
 end_group();
@@ -265,9 +284,7 @@ $output = shell_exec( 'svn status --xml' );
 $xml = simplexml_load_string( $output );
 
 if ( false === $xml ) {
-	echo 'A problem occurred while reading the `svn status --xml`.';
-
-	exit( 1 );
+	exit_with_error( 'A problem occurred while reading the `svn status --xml`.' );
 }
 
 foreach ( $xml->target->entry as $entry ) {
@@ -320,9 +337,7 @@ foreach ( $xml->target->entry as $entry ) {
 
 			break;
 		default:
-			echo "Unsupport working copy status: $wc_status - $path.";
-
-			exit( 1 );
+			exit_with_error( "Unsupported working copy status: $wc_status - $path." );
 	}
 }
 
