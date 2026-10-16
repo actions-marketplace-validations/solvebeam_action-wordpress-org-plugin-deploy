@@ -42,15 +42,15 @@ The WordPress.org plugin directory can be seen as an environment where the plugi
 
 #### Screenshot of GitHub repository environments settings
 
-![Screenshot of GitHub repository environments settings.](documentation/github.com_solvebeam_solvebeam-diagrams-with-mermaid_settings_environments.png)
+![Screenshot of GitHub repository environments settings.](documentation/github.com_solvebeam_solvebeam-diagrams-with-mermaid_settings_environments-fs8.png)
 
 #### Screenshot of GitHub repository homepage deployments
 
-<img alt="Screenshot of GitHub repository homepage deployments." src="documentation/github.com_solvebeam_wp-salesfeed_home_deployments.png" width="296">
+<img alt="Screenshot of GitHub repository homepage deployments." src="documentation/github.com_solvebeam_solvebeam-diagrams-with-mermaid-for-wordpress_home_deployments-fs8.png" width="320">
 
 #### Screenshot of GitHub repository environment deployment protection rules
 
-![Screenshot of GitHub repository environment deployment protection rules.](documentation/github.com_solvebeam_solvebeam-diagrams-with-mermaid_settings_environments_deployment-protection-rules.png)
+![Screenshot of GitHub repository environment deployment protection rules.](documentation/github.com_solvebeam_solvebeam-diagrams-with-mermaid_settings_environments_deployment-protection-rules-fs8.png)
 
 ## Example
 
