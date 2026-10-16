@@ -1,85 +1,13 @@
 <?php
 
 /**
- * Functions.
+ * Autoload.
  */
-function escape_sequence( $code ) {
-	return "\e[" . $code . 'm';
-}
+require __DIR__ . '/vendor/autoload.php';
 
-function format_command( $value ) {
-	return escape_sequence( '36' ) . $value . escape_sequence( '0' );
-}
-
-function format_error( $value ) {
-	return escape_sequence( '31' ) . escape_sequence( '1' ) . 'Error:' . escape_sequence( '0' ) . ' ' . $value;
-}
-
-/**
- * Exit with error.
- *
- * On GitHub Actions the message is printed as an error workflow command, this
- * also creates an annotation in the summary of the workflow run.
- *
- * @link https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-commands#setting-an-error-message
- * @param string $message
- * @param int    $result_code
- * @return never
- */
-function exit_with_error( $message, $result_code = 1 ) {
-	if ( 'true' === getenv( 'GITHUB_ACTIONS' ) ) {
-		echo '::error::', str_replace( [ '%', "\r", "\n" ], [ '%25', '%0D', '%0A' ], $message ), PHP_EOL;
-	} else {
-		echo format_error( $message ), PHP_EOL;
-	}
-
-	exit( $result_code );
-}
-
-function run_command( $command, $expected_result_code = 0 ) {
-	echo format_command( $command ), PHP_EOL;
-
-	passthru( $command, $result_code );
-
-	if ( null !== $expected_result_code && $expected_result_code !== $result_code ) {
-		exit( $result_code );
-	}
-
-	return $result_code;
-}
-
-function start_group( $name ) {
-	echo '::group::', $name, PHP_EOL;
-}
-
-function end_group() {
-	echo '::endgroup::', PHP_EOL;
-}
-
-/**
- * Get input.
- * 
- * @link https://docs.github.com/en/actions/creating-actions/metadata-syntax-for-github-actions#inputs
- * @link https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idstepswith
- * @link https://github.com/actions/checkout/blob/cd7d8d697e10461458bc61a30d094dc601a8b017/dist/index.js#L2699-L2717
- * @param string $name
- * @return string|array|false
- */
-function get_input( $name ) {
-	$env_name = 'INPUT_' . strtoupper( $name );
-
-	return getenv( $env_name );
-}
-
-function get_required_input( $name ) {
-	$value = get_input( $name );
-
-	if ( false === $value || '' === $value ) {
-		exit_with_error( "Input required and not supplied: $name" );
-	}
-
-	return $value;
-}
+use SolveBeam\GitHubActionsToolkit\Core;
+use SolveBeam\GitHubActionsToolkit\Shell;
+use SolveBeam\GitHubActionsToolkit\Style;
 
 /**
  * Default environment variables.
@@ -91,12 +19,16 @@ $repository = getenv( 'GITHUB_REPOSITORY' );
 /**
  * Setup.
  */
-$username = get_required_input( 'username' );
-$password = get_required_input( 'password' );
+$core  = new Core();
+$style = new Style();
+$shell = new Shell();
 
-$slug = get_required_input( 'slug' );
+$username = $core->get_required_input( 'username' );
+$password = $core->get_required_input( 'password' );
 
-$tag = get_required_input( 'tag' );
+$slug = $core->get_required_input( 'slug' );
+
+$tag = $core->get_required_input( 'tag' );
 
 $version = ltrim( $tag, 'v' );
 
@@ -135,258 +67,261 @@ $readme_file = $plugin_dir . '/readme.txt';
 /**
  * Start.
  */
-start_group( 'ℹ️ Release to WordPress.org' );
+$core->start_group( 'ℹ️ Release to WordPress.org' );
 
-echo '• ', escape_sequence( '1' ), 'Subversion URL:', escape_sequence( '0' ), ' ', $svn_url, PHP_EOL;
-echo '• ', escape_sequence( '1' ), 'Subversion username:', escape_sequence( '0' ), ' ', $username, PHP_EOL;
+echo '• ', $style->bold( 'Subversion URL:' ), ' ', $svn_url, PHP_EOL;
+echo '• ', $style->bold( 'Subversion username:' ), ' ', $username, PHP_EOL;
 
-end_group();
+$core->end_group();
 
-/**
- * GitHub release.
- */
-start_group( '🐙 Check GitHub release' );
+try {
+	/**
+	 * GitHub release.
+	 */
+	$core->start_group( '🐙 Check GitHub release' );
 
-run_command(
-	sprintf(
-		'gh release view %s --repo %s',
-		escapeshellarg( $tag ),
-		escapeshellarg( $repository )
-	)
-);
+	$shell->must_run(
+		sprintf(
+			'gh release view %s --repo %s',
+			escapeshellarg( $tag ),
+			escapeshellarg( $repository )
+		)
+	);
 
-end_group();
-
-/**
- * Download release.
- *
- * @link https://cli.github.com/manual/gh_release_download
- */
-start_group( '📥 Download plugin' );
-
-run_command(
-	sprintf(
-		'gh release download %s --pattern %s --dir %s --repo %s',
-		escapeshellarg( $tag ),
-		escapeshellarg( $filename ),
-		escapeshellarg( $archives_dir ),
-		escapeshellarg( $repository )
-	)
-);
-
-end_group();
-
-/**
- * Unzip.
- */
-start_group( '📦 Unzip plugin' );
-
-run_command(
-	sprintf(
-		'unzip %s -d %s',
-		escapeshellarg( $archives_dir . '/' . $filename ),
-		escapeshellarg( $plugins_dir )
-	)
-);
-
-end_group();
-
-/**
- * Parse stable tag.
- */
-if ( ! is_file( $readme_file ) ) {
-	exit_with_error( "The archive $filename does not contain the file $slug/readme.txt." );
-}
-
-$readme_content = file_get_contents( $readme_file );
-
-$pattern = "/Stable tag: (.*)/";
-
-$stable_tag = '';
-
-if ( 1 === preg_match( $pattern, $readme_content, $matches ) ) {
-	$stable_tag = trim( $matches[1] );
-}
-
-if ( $stable_tag !== $version ) {
-	exit_with_error( "Stable tag in readme.txt ($stable_tag) is not equal to release version ($version)." );
-}
-
-/**
- * Check tag existence.
- */
-start_group( '🔎 Check tag existence' );
-
-$svn_url_tag = "$svn_url/tags/$version";
-
-$result_code = run_command(
-	sprintf(
-		'svn info %s',
-		escapeshellarg( $svn_url_tag )
-	),
-	null
-);
-
-if ( 0 === $result_code ) {
-	exit_with_error( "There is already a tag for version $version: $svn_url_tag" );
-}
-
-end_group();
-
-/**
- * Subversion.
- * 
- * @link https://stackoverflow.com/a/122291
- */
-start_group( '⬇ Subversion checkout WordPress.org' );
-
-run_command(
-	sprintf(
-		'svn checkout %s %s --depth immediates',
-		escapeshellarg( $svn_url ),
-		escapeshellarg( $svn_dir )
-	)
-);
-
-chdir( $svn_dir );
-
-run_command( 'svn update trunk --set-depth infinity' );
-
-end_group();
-
-/**
- * Synchronize.
- * 
- * @link http://stackoverflow.com/a/14789400
- * @link http://askubuntu.com/a/476048
- */
-start_group( '🔄 Synchronize plugin' );
-
-run_command(
-	sprintf(
-		'rsync --archive --delete --verbose %s %s',
-		escapeshellarg( $plugin_dir . '/' ),
-		escapeshellarg( $svn_dir . '/trunk/' )
-	)
-);
-
-end_group();
-
-/**
- * Subversion modifications.
- */
-start_group( '💾 Subversion modifications' );
-
-run_command( 'svn status' );
-
-$output = shell_exec( 'svn status --xml' );
-
-$xml = simplexml_load_string( $output );
-
-if ( false === $xml ) {
-	exit_with_error( 'A problem occurred while reading the `svn status --xml`.' );
-}
-
-foreach ( $xml->target->entry as $entry ) {
-	$path = (string) $entry['path'];
-
-	$wc_status = (string) $entry->{'wc-status'}['item'];
+	$core->end_group();
 
 	/**
-	 * Peg revision.
+	 * Download release.
 	 *
-	 * A path can point to different files over time, because files can be
-	 * renamed, deleted or replaced. Subversion therefore allows a revision
-	 * to be appended to a path, as in `path@REV`, to identify which file is
-	 * meant: the one that had this path in revision `REV`. This is called
-	 * a peg revision.
-	 *
-	 * Subversion applies this notation to every path argument and treats
-	 * everything after the last at sign as the peg revision. A file like
-	 * `icon@2x.png` is therefore read as the path `icon` with peg revision
-	 * `2x.png`, and `svn add` and `svn rm` fail with “a peg revision is not
-	 * allowed here”.
-	 *
-	 * Because only the last at sign counts, we append one to every path:
-	 * `icon@2x.png@` is read as the path `icon@2x.png` with an empty peg
-	 * revision. This is harmless for paths without an at sign.
-	 *
-	 * @link https://svnbook.red-bean.com/en/1.7/svn.advanced.pegrevs.html
+	 * @link https://cli.github.com/manual/gh_release_download
 	 */
-	switch ( $wc_status ) {
-		case 'missing':
-			run_command(
-				sprintf(
-					'svn rm %s',
-					escapeshellarg( $path . '@' )
-				)
-			);
+	$core->start_group( '📥 Download plugin' );
 
-			break;
-		case 'modified':
-			// Modified entry will be commited.
+	$shell->must_run(
+		sprintf(
+			'gh release download %s --pattern %s --dir %s --repo %s',
+			escapeshellarg( $tag ),
+			escapeshellarg( $filename ),
+			escapeshellarg( $archives_dir ),
+			escapeshellarg( $repository )
+		)
+	);
 
-			break;
-		case 'unversioned':
-			run_command(
-				sprintf(
-					'svn add %s',
-					escapeshellarg( $path . '@' )
-				)
-			);
+	$core->end_group();
 
-			break;
-		default:
-			exit_with_error( "Unsupported working copy status: $wc_status - $path." );
+	/**
+	 * Unzip.
+	 */
+	$core->start_group( '📦 Unzip plugin' );
+
+	$shell->must_run(
+		sprintf(
+			'unzip %s -d %s',
+			escapeshellarg( $archives_dir . '/' . $filename ),
+			escapeshellarg( $plugins_dir )
+		)
+	);
+
+	$core->end_group();
+
+	/**
+	 * Parse stable tag.
+	 */
+	if ( ! is_file( $readme_file ) ) {
+		throw new RuntimeException( "The archive $filename does not contain the file $slug/readme.txt." );
 	}
+
+	$readme_content = file_get_contents( $readme_file );
+
+	$pattern = "/Stable tag: (.*)/";
+
+	$stable_tag = '';
+
+	if ( 1 === preg_match( $pattern, $readme_content, $matches ) ) {
+		$stable_tag = trim( $matches[1] );
+	}
+
+	if ( $stable_tag !== $version ) {
+		throw new RuntimeException( "Stable tag in readme.txt ($stable_tag) is not equal to release version ($version)." );
+	}
+
+	/**
+	 * Check tag existence.
+	 */
+	$core->start_group( '🔎 Check tag existence' );
+
+	$svn_url_tag = "$svn_url/tags/$version";
+
+	$result_code = $shell->run(
+		sprintf(
+			'svn info %s',
+			escapeshellarg( $svn_url_tag )
+		)
+	);
+
+	if ( 0 === $result_code ) {
+		throw new RuntimeException( "There is already a tag for version $version: $svn_url_tag" );
+	}
+
+	$core->end_group();
+
+	/**
+	 * Subversion.
+	 * 
+	 * @link https://stackoverflow.com/a/122291
+	 */
+	$core->start_group( '⬇ Subversion checkout WordPress.org' );
+
+	$shell->must_run(
+		sprintf(
+			'svn checkout %s %s --depth immediates',
+			escapeshellarg( $svn_url ),
+			escapeshellarg( $svn_dir )
+		)
+	);
+
+	chdir( $svn_dir );
+
+	$shell->must_run( 'svn update trunk --set-depth infinity' );
+
+	$core->end_group();
+
+	/**
+	 * Synchronize.
+	 * 
+	 * @link http://stackoverflow.com/a/14789400
+	 * @link http://askubuntu.com/a/476048
+	 */
+	$core->start_group( '🔄 Synchronize plugin' );
+
+	$shell->must_run(
+		sprintf(
+			'rsync --archive --delete --verbose %s %s',
+			escapeshellarg( $plugin_dir . '/' ),
+			escapeshellarg( $svn_dir . '/trunk/' )
+		)
+	);
+
+	$core->end_group();
+
+	/**
+	 * Subversion modifications.
+	 */
+	$core->start_group( '💾 Subversion modifications' );
+
+	$shell->must_run( 'svn status' );
+
+	$output = shell_exec( 'svn status --xml' );
+
+	$xml = simplexml_load_string( $output );
+
+	if ( false === $xml ) {
+		throw new RuntimeException( 'A problem occurred while reading the `svn status --xml`.' );
+	}
+
+	foreach ( $xml->target->entry as $entry ) {
+		$path = (string) $entry['path'];
+
+		$wc_status = (string) $entry->{'wc-status'}['item'];
+
+		/**
+		 * Peg revision.
+		 *
+		 * A path can point to different files over time, because files can be
+		 * renamed, deleted or replaced. Subversion therefore allows a revision
+		 * to be appended to a path, as in `path@REV`, to identify which file is
+		 * meant: the one that had this path in revision `REV`. This is called
+		 * a peg revision.
+		 *
+		 * Subversion applies this notation to every path argument and treats
+		 * everything after the last at sign as the peg revision. A file like
+		 * `icon@2x.png` is therefore read as the path `icon` with peg revision
+		 * `2x.png`, and `svn add` and `svn rm` fail with “a peg revision is not
+		 * allowed here”.
+		 *
+		 * Because only the last at sign counts, we append one to every path:
+		 * `icon@2x.png@` is read as the path `icon@2x.png` with an empty peg
+		 * revision. This is harmless for paths without an at sign.
+		 *
+		 * @link https://svnbook.red-bean.com/en/1.7/svn.advanced.pegrevs.html
+		 */
+		switch ( $wc_status ) {
+			case 'missing':
+				$shell->must_run(
+					sprintf(
+						'svn rm %s',
+						escapeshellarg( $path . '@' )
+					)
+				);
+
+				break;
+			case 'modified':
+				// Modified entry will be commited.
+
+				break;
+			case 'unversioned':
+				$shell->must_run(
+					sprintf(
+						'svn add %s',
+						escapeshellarg( $path . '@' )
+					)
+				);
+
+				break;
+			default:
+				throw new RuntimeException( "Unsupported working copy status: $wc_status - $path." );
+		}
+	}
+
+	$core->end_group();
+
+	/**
+	 * Commit.
+	 */
+	$core->start_group( '⬆ Subversion commit WordPress.org' );
+
+	$shell->must_run(
+		sprintf(
+			'svn commit --message %s --non-interactive --username %s --password %s',
+			escapeshellarg( 'Update' ),
+			escapeshellarg( $username ),
+			escapeshellarg( $password )
+		)
+	);
+
+	$core->end_group();
+
+	/**
+	 * Tag.
+	 */
+	$core->start_group( '🏷️ Subversion tag WordPress.org' );
+
+	$shell->must_run(
+		sprintf(
+			'svn cp %s %s --message %s --non-interactive --username %s --password %s',
+			escapeshellarg( "$svn_url/trunk" ),
+			escapeshellarg( $svn_url_tag ),
+			escapeshellarg( "Tagging version $version" ),
+			escapeshellarg( $username ),
+			escapeshellarg( $password )
+		)
+	);
+
+	$core->end_group();
+
+	/**
+	 * Clean up.
+	 */
+	$core->start_group( '🗑️ Clean up' );
+
+	$shell->must_run(
+		sprintf(
+			'rm -f -R %s',
+			escapeshellarg( $work_dir )
+		)
+	);
+
+	$core->end_group();
+} catch ( RuntimeException $e ) {
+	$core->set_failed( $e->getMessage() );
 }
-
-end_group();
-
-/**
- * Commit.
- */
-start_group( '⬆ Subversion commit WordPress.org' );
-
-run_command(
-	sprintf(
-		'svn commit --message %s --non-interactive --username %s --password %s',
-		escapeshellarg( 'Update' ),
-		escapeshellarg( $username ),
-		escapeshellarg( $password )
-	)
-);
-
-end_group();
-
-/**
- * Tag.
- */
-start_group( '🏷️ Subversion tag WordPress.org' );
-
-run_command(
-	sprintf(
-		'svn cp %s %s --message %s --non-interactive --username %s --password %s',
-		escapeshellarg( "$svn_url/trunk" ),
-		escapeshellarg( $svn_url_tag ),
-		escapeshellarg( "Tagging version $version" ),
-		escapeshellarg( $username ),
-		escapeshellarg( $password )
-	)
-);
-
-end_group();
-
-/**
- * Clean up.
- */
-start_group( '🗑️ Clean up' );
-
-run_command(
-	sprintf(
-		'rm -f -R %s',
-		escapeshellarg( $work_dir )
-	)
-);
-
-end_group();

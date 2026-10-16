@@ -101,5 +101,6 @@ jobs:
 ## Development
 
 ```
+composer install
 GITHUB_REPOSITORY=solvebeam/solvebeam-diagrams-with-mermaid php deploy.php
 ```
