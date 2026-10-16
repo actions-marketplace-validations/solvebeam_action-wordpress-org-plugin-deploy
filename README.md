@@ -1,14 +1,41 @@
-# Github action WordPress.org deploy
+# WordPress.org plugin deploy
 
-## Introduction
+**Ship the exact ZIP you released, nothing more and nothing less.**
 
-### Streamline your WordPress plugin deployment
+Publish a GitHub release, attach your plugin ZIP, and this action puts *that very ZIP* in the WordPress.org plugin directory. No rebuilding, no `.distignore` guesswork, no surprise files in SVN. What you tested is what your users get.
 
-This GitHub action simplifies deploying your WordPress plugin directly in the WordPress plugin directory.
+```
+GitHub release v1.2.3 ──► salesfeed.1.2.3.zip ──► ✅ checks ──► trunk + tags/1.2.3 on WordPress.org
+```
 
-### Built for WordPress developers
+## Why this action?
 
-Leveraging PHP instead of bash scripting, this action caters to the preferences of many WordPress developers, offering a familiar and potentially more convenient workflow.
+Most WordPress.org deploy actions, including the popular [10up/action-wordpress-plugin-deploy](https://github.com/10up/action-wordpress-plugin-deploy), check out your repository and put the plugin together again at deploy time, using `.distignore` or `.gitattributes` rules. That means the files on WordPress.org can differ from the ZIP you released and tested. This action takes the opposite approach:
+
+- 📦 **Release-artifact based.** It deploys the `{slug}.{version}.zip` asset from your GitHub release, the same file your users can download from GitHub. One build and one source of truth.
+- 🛡️ **Fails loudly, never quietly.** Before touching SVN it checks that the release exists, that the ZIP contains `readme.txt` and that the `Stable tag` matches the release version. If the SVN tag already exists, the run fails with a clear message instead of turning green while doing nothing.
+- 🔁 **Redeploy any tag with one click.** Thanks to `workflow_dispatch`, you can (re)deploy any existing release from the GitHub UI. No tag-push tricks needed.
+- 🚦 **Made for GitHub Environments.** Treat WordPress.org as a real deployment target: see deployments on your repository homepage and require approval before anything goes live.
+- 🧹 **No side effects in your repository.** No `actions/checkout`, no build step, no temporary git commits by a bot user in your workspace.
+- 🐘 **Written in PHP, for WordPress developers.** The deploy logic is a readable PHP script instead of a bash script, so it's easy to understand, debug and contribute to.
+- 📋 **Tidy logs.** Every step runs in its own collapsible log group, so you can see right away where something went wrong.
+- 🖼️ **Handles tricky filenames.** Files like `icon@2x.png` just work (no Subversion peg revision errors).
+
+### Compared to 10up/action-wordpress-plugin-deploy
+
+| | This action | 10up |
+|---|---|---|
+| What gets deployed | The ZIP attached to your GitHub release | A fresh copy of your repository, filtered by `.distignore` / `.gitattributes` |
+| Needs checkout and build steps in the workflow | No | Yes |
+| Checks `Stable tag` against the release version | ✅ Yes | ❌ No |
+| Version already on WordPress.org | ❌ Fails with a clear error | ✅ Exits green without deploying |
+| Redeploy an existing release from the UI | ✅ Built in (`workflow_dispatch` + `tag`) | Needs extra configuration |
+| Credentials | Action inputs (`username` / `password`) | Environment variables (`SVN_USERNAME` / `SVN_PASSWORD`) |
+| Language | PHP | Bash |
+| Updates the WordPress.org `assets` directory | Not yet, use for example [10up/action-wordpress-plugin-asset-update](https://github.com/10up/action-wordpress-plugin-asset-update) | ✅ Yes |
+| Dry run | Not yet | ✅ Yes |
+
+**In short:** if you want your WordPress.org release to be the same artifact as your GitHub release, with safeguards that stop mistakes before they hit SVN, this action is for you.
 
 ## Usage
 
@@ -38,7 +65,7 @@ This way, the WordPress login details can be managed in one place and you don't 
 
 ### Environments
 
-The WordPress.org plugin directory can be seen as an environment where the plugin in a GitHub repository can be deployed to. The advantage of this is that GitHub shows the deployments to the WordPress.org plugin directory. And with protection rules you can delay the deployment to WordPres.org until after approval by 1 or more GitHub users.
+The WordPress.org plugin directory can be seen as an environment where the plugin in a GitHub repository can be deployed to. The advantage of this is that GitHub shows the deployments to the WordPress.org plugin directory. And with protection rules you can delay the deployment to WordPress.org until after approval by 1 or more GitHub users.
 
 #### Screenshot of GitHub repository environments settings
 
