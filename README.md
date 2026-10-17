@@ -5,7 +5,7 @@
 Publish a GitHub release, attach your plugin ZIP, and this action puts *that very ZIP* in the WordPress.org plugin directory. No rebuilding, no `.distignore` guesswork, no surprise files in SVN. What you tested is what your users get.
 
 ```
-GitHub release v1.2.3 ──► salesfeed.1.2.3.zip ──► ✅ checks ──► trunk + tags/1.2.3 on WordPress.org
+GitHub release v1.2.3 ──► solvebeam-diagrams-with-mermaid.1.2.3.zip ──► ✅ checks ──► trunk + tags/1.2.3 on WordPress.org
 ```
 
 ## Why this action?
@@ -108,20 +108,34 @@ jobs:
 
     environment:
       name: WordPress.org plugin directory
-      url: https://wordpress.org/plugins/salesfeed/
+      url: https://wordpress.org/plugins/solvebeam-diagrams-with-mermaid/
 
     steps:
       - name: Deploy
-        uses: solvebeam/action-wordpress-org-plugin-deploy@main
+        uses: solvebeam/action-wordpress-org-plugin-deploy@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           username: ${{ vars.WORDPRESS_ORG_SOLVEBEAM_USERNAME }}
           password: ${{ secrets.WORDPRESS_ORG_SOLVEBEAM_PASSWORD }}
           tag: ${{ inputs.tag || github.event.release.tag_name }}
-          slug: salesfeed
+          slug: solvebeam-diagrams-with-mermaid
           dry-run: ${{ inputs.dry-run || false }}
 ```
+
+### Versions
+
+This action follows [Semantic Versioning](https://semver.org/). The `v1` tag always points to the latest `1.x.x` release, so you get fixes and new features without breaking changes. Prefer full control? Pin an exact release such as `@v1.0.0`, or a commit SHA. See the [changelog](CHANGELOG.md) for what changed.
+
+### Inputs
+
+| Input | Required | Description |
+| --- | --- | --- |
+| `username` | Yes | WordPress.org Subversion username, case sensitive. |
+| `password` | Yes | WordPress.org Subversion password. |
+| `tag` | Yes | Release tag name, with or without a leading `v`. The GitHub release must contain a `{slug}.{version}.zip` asset. |
+| `slug` | Yes | WordPress.org plugin slug, for example `solvebeam-diagrams-with-mermaid`. |
+| `dry-run` | No | `true` to run every step except the Subversion commit and tag. Defaults to `false`. |
 
 ## In the wild
 
