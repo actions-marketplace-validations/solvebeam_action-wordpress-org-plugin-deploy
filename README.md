@@ -19,7 +19,8 @@ Most WordPress.org deploy actions, including the popular [10up/action-wordpress-
 - 🧹 **No side effects in your repository.** No `actions/checkout`, no build step, no temporary git commits by a bot user in your workspace.
 - 🐘 **Written in PHP, for WordPress developers.** The deploy logic is a readable PHP script instead of a bash script, so it's easy to understand, debug and contribute to.
 - 📋 **Tidy logs.** Every step runs in its own collapsible log group, so you can see right away where something went wrong.
-- 🧾 **Job summary.** Every run writes a summary with the result, links to the GitHub release, the plugin page, Subversion and Trac, and a table of the Subversion changes.
+- 🧾 **Job summary.** Every run writes a summary with the result, links to the GitHub release, the plugin page, Subversion and Trac, a table of the Subversion changes and the commands that were run.
+- 🧪 **Dry run.** With `dry-run: true` every step and check runs as usual, but the Subversion commit and tag commands are only printed, not executed.
 - 🖼️ **Handles tricky filenames.** Files like `icon@2x.png` just work (no Subversion peg revision errors).
 
 ### Compared to 10up/action-wordpress-plugin-deploy
@@ -33,7 +34,7 @@ Most WordPress.org deploy actions, including the popular [10up/action-wordpress-
 | Redeploy an existing release from the UI | ✅ Built in (`workflow_dispatch` + `tag`) | Needs extra configuration |
 | Job summary with links and Subversion changes | ✅ Yes | ❌ No |
 | Credentials | Action inputs (`username` / `password`) | Environment variables (`SVN_USERNAME` / `SVN_PASSWORD`) |
-| Dry run | Not yet | ✅ Yes |
+| Dry run | ✅ Yes | ✅ Yes |
 
 To update the `readme.txt` and `assets` directory on WordPress.org without a new release, use the companion action [solvebeam/action-wordpress-org-plugin-readme-deploy](https://github.com/solvebeam/action-wordpress-org-plugin-readme-deploy).
 
@@ -93,6 +94,11 @@ on:
         description: 'Tag to deploy to WordPress.org'
         required: true
         type: string
+      dry-run:
+        description: 'Dry run, without committing or tagging on WordPress.org'
+        required: false
+        default: false
+        type: boolean
   release:
     types: [released]
 
@@ -114,6 +120,7 @@ jobs:
           password: ${{ secrets.WORDPRESS_ORG_SOLVEBEAM_PASSWORD }}
           tag: ${{ inputs.tag || github.event.release.tag_name }}
           slug: salesfeed
+          dry-run: ${{ inputs.dry-run || false }}
 ```
 
 ## Related

@@ -33,6 +33,8 @@ $tag = $core->get_required_input( 'tag' );
 
 $version = ltrim( $tag, 'v' );
 
+$dry_run = $core->get_boolean_input( 'dry-run' );
+
 $svn_url = "https://plugins.svn.wordpress.org/$slug";
 
 $svn_url_tag = "$svn_url/tags/$version";
@@ -78,10 +80,13 @@ $core->start_group( 'ℹ️ Release to WordPress.org' );
 
 echo '• ', $style->bold( 'Subversion URL:' ), ' ', $svn_url, PHP_EOL;
 echo '• ', $style->bold( 'Subversion username:' ), ' ', $username, PHP_EOL;
+echo '• ', $style->bold( 'Dry run:' ), ' ', $dry_run ? 'yes' : 'no', PHP_EOL;
 
 $core->end_group();
 
 $changes = [];
+
+$commands = [];
 
 $error = null;
 
@@ -91,13 +96,15 @@ try {
 	 */
 	$core->start_group( '🐙 Check GitHub release' );
 
-	$shell->must_run(
-		sprintf(
-			'gh release view %s --repo %s',
-			escapeshellarg( $tag ),
-			escapeshellarg( $repository )
-		)
+	$command = sprintf(
+		'gh release view %s --repo %s',
+		escapeshellarg( $tag ),
+		escapeshellarg( $repository )
 	);
+
+	$commands[] = $command;
+
+	$shell->must_run( $command );
 
 	$core->end_group();
 
@@ -108,15 +115,17 @@ try {
 	 */
 	$core->start_group( '📥 Download plugin' );
 
-	$shell->must_run(
-		sprintf(
-			'gh release download %s --pattern %s --dir %s --repo %s',
-			escapeshellarg( $tag ),
-			escapeshellarg( $filename ),
-			escapeshellarg( $archives_dir ),
-			escapeshellarg( $repository )
-		)
+	$command = sprintf(
+		'gh release download %s --pattern %s --dir %s --repo %s',
+		escapeshellarg( $tag ),
+		escapeshellarg( $filename ),
+		escapeshellarg( $archives_dir ),
+		escapeshellarg( $repository )
 	);
+
+	$commands[] = $command;
+
+	$shell->must_run( $command );
 
 	$core->end_group();
 
@@ -125,13 +134,15 @@ try {
 	 */
 	$core->start_group( '📦 Unzip plugin' );
 
-	$shell->must_run(
-		sprintf(
-			'unzip %s -d %s',
-			escapeshellarg( $archives_dir . '/' . $filename ),
-			escapeshellarg( $plugins_dir )
-		)
+	$command = sprintf(
+		'unzip %s -d %s',
+		escapeshellarg( $archives_dir . '/' . $filename ),
+		escapeshellarg( $plugins_dir )
 	);
+
+	$commands[] = $command;
+
+	$shell->must_run( $command );
 
 	$core->end_group();
 
@@ -161,12 +172,14 @@ try {
 	 */
 	$core->start_group( '🔎 Check tag existence' );
 
-	$result_code = $shell->run(
-		sprintf(
-			'svn info %s',
-			escapeshellarg( $svn_url_tag )
-		)
+	$command = sprintf(
+		'svn info %s',
+		escapeshellarg( $svn_url_tag )
 	);
+
+	$commands[] = $command;
+
+	$result_code = $shell->run( $command );
 
 	if ( 0 === $result_code ) {
 		throw new RuntimeException( "There is already a tag for version $version: $svn_url_tag" );
@@ -181,17 +194,23 @@ try {
 	 */
 	$core->start_group( '⬇ Subversion checkout WordPress.org' );
 
-	$shell->must_run(
-		sprintf(
-			'svn checkout %s %s --depth immediates',
-			escapeshellarg( $svn_url ),
-			escapeshellarg( $svn_dir )
-		)
+	$command = sprintf(
+		'svn checkout %s %s --depth immediates',
+		escapeshellarg( $svn_url ),
+		escapeshellarg( $svn_dir )
 	);
+
+	$commands[] = $command;
+
+	$shell->must_run( $command );
 
 	chdir( $svn_dir );
 
-	$shell->must_run( 'svn update trunk --set-depth infinity' );
+	$command = 'svn update trunk --set-depth infinity';
+
+	$commands[] = $command;
+
+	$shell->must_run( $command );
 
 	$core->end_group();
 
@@ -203,13 +222,15 @@ try {
 	 */
 	$core->start_group( '🔄 Synchronize plugin' );
 
-	$shell->must_run(
-		sprintf(
-			'rsync --archive --delete --verbose %s %s',
-			escapeshellarg( $plugin_dir . '/' ),
-			escapeshellarg( $svn_dir . '/trunk/' )
-		)
+	$command = sprintf(
+		'rsync --archive --delete --verbose %s %s',
+		escapeshellarg( $plugin_dir . '/' ),
+		escapeshellarg( $svn_dir . '/trunk/' )
 	);
+
+	$commands[] = $command;
+
+	$shell->must_run( $command );
 
 	$core->end_group();
 
@@ -218,7 +239,11 @@ try {
 	 */
 	$core->start_group( '💾 Subversion modifications' );
 
-	$shell->must_run( 'svn status' );
+	$command = 'svn status';
+
+	$commands[] = $command;
+
+	$shell->must_run( $command );
 
 	$output = shell_exec( 'svn status --xml' );
 
@@ -256,12 +281,14 @@ try {
 		 */
 		switch ( $wc_status ) {
 			case 'missing':
-				$shell->must_run(
-					sprintf(
-						'svn rm %s',
-						escapeshellarg( $path . '@' )
-					)
+				$command = sprintf(
+					'svn rm %s',
+					escapeshellarg( $path . '@' )
 				);
+
+				$commands[] = $command;
+
+				$shell->must_run( $command );
 
 				$changes[] = [ '➖ Removed', $path ];
 
@@ -273,12 +300,14 @@ try {
 
 				break;
 			case 'unversioned':
-				$shell->must_run(
-					sprintf(
-						'svn add %s',
-						escapeshellarg( $path . '@' )
-					)
+				$command = sprintf(
+					'svn add %s',
+					escapeshellarg( $path . '@' )
 				);
+
+				$commands[] = $command;
+
+				$shell->must_run( $command );
 
 				$changes[] = [ '➕ Added', $path ];
 
@@ -295,14 +324,22 @@ try {
 	 */
 	$core->start_group( '⬆ Subversion commit WordPress.org' );
 
-	$shell->must_run(
-		sprintf(
-			'svn commit --message %s --non-interactive --username %s --password %s',
-			escapeshellarg( 'Update' ),
-			escapeshellarg( $username ),
-			escapeshellarg( $password )
-		)
+	$command = sprintf(
+		'svn commit --message %s --non-interactive --username %s --password %s',
+		escapeshellarg( 'Update' ),
+		escapeshellarg( $username ),
+		escapeshellarg( $password )
 	);
+
+	if ( $dry_run ) {
+		$shell->skip( $command );
+
+		$commands[] = "# Skipped (dry run): $command";
+	} else {
+		$commands[] = $command;
+
+		$shell->must_run( $command );
+	}
 
 	$core->end_group();
 
@@ -311,16 +348,24 @@ try {
 	 */
 	$core->start_group( '🏷️ Subversion tag WordPress.org' );
 
-	$shell->must_run(
-		sprintf(
-			'svn cp %s %s --message %s --non-interactive --username %s --password %s',
-			escapeshellarg( "$svn_url/trunk" ),
-			escapeshellarg( $svn_url_tag ),
-			escapeshellarg( "Tagging version $version" ),
-			escapeshellarg( $username ),
-			escapeshellarg( $password )
-		)
+	$command = sprintf(
+		'svn cp %s %s --message %s --non-interactive --username %s --password %s',
+		escapeshellarg( "$svn_url/trunk" ),
+		escapeshellarg( $svn_url_tag ),
+		escapeshellarg( "Tagging version $version" ),
+		escapeshellarg( $username ),
+		escapeshellarg( $password )
 	);
+
+	if ( $dry_run ) {
+		$shell->skip( $command );
+
+		$commands[] = "# Skipped (dry run): $command";
+	} else {
+		$commands[] = $command;
+
+		$shell->must_run( $command );
+	}
 
 	$core->end_group();
 
@@ -329,12 +374,14 @@ try {
 	 */
 	$core->start_group( '🗑️ Clean up' );
 
-	$shell->must_run(
-		sprintf(
-			'rm -f -R %s',
-			escapeshellarg( $work_dir )
-		)
+	$command = sprintf(
+		'rm -f -R %s',
+		escapeshellarg( $work_dir )
 	);
+
+	$commands[] = $command;
+
+	$shell->must_run( $command );
 
 	$core->end_group();
 } catch ( RuntimeException $e ) {
@@ -346,12 +393,18 @@ try {
  *
  * Written before `set_failed()`, because that exits.
  */
+$status = match ( true ) {
+	null !== $error => "❌ Failed: $error",
+	$dry_run        => '🧪 Dry run, nothing committed or tagged.',
+	default         => '✅ Deployed.',
+};
+
 $summary = new Summary();
 
 $summary
-	->add_heading( "Deploy $slug $version to WordPress.org", 2 )
+	->add_heading( "Deploy $slug $version to WordPress.org" . ( $dry_run ? ' (dry run)' : '' ), 2 )
 	->add_eol()
-	->add_raw( null === $error ? '✅ Deployed.' : "❌ Failed: $error", true )
+	->add_raw( $status, true )
 	->add_eol()
 	->add_raw( "- **GitHub release:** <$release_url>", true )
 	->add_raw( "- **Plugin:** <$public_url>", true )
@@ -374,7 +427,12 @@ if ( [] === $changes ) {
 	}
 }
 
-$summary->write();
+$summary
+	->add_eol()
+	->add_heading( 'Commands', 3 )
+	->add_eol()
+	->add_code_block( implode( PHP_EOL, $commands ), 'shell' )
+	->write();
 
 if ( null !== $error ) {
 	$core->set_failed( $error );
