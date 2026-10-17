@@ -28,12 +28,12 @@ Most WordPress.org deploy actions, including the popular [10up/action-wordpress-
 | What gets deployed | The ZIP attached to your GitHub release | A fresh copy of your repository, filtered by `.distignore` / `.gitattributes` |
 | Needs checkout and build steps in the workflow | No | Yes |
 | Checks `Stable tag` against the release version | ✅ Yes | ❌ No |
-| Version already on WordPress.org | ❌ Fails with a clear error | ✅ Exits green without deploying |
+| Version already on WordPress.org | ✅ Fails with a clear error | ❌ Exits green without deploying |
 | Redeploy an existing release from the UI | ✅ Built in (`workflow_dispatch` + `tag`) | Needs extra configuration |
 | Credentials | Action inputs (`username` / `password`) | Environment variables (`SVN_USERNAME` / `SVN_PASSWORD`) |
-| Language | PHP | Bash |
-| Updates the WordPress.org `assets` directory | Not yet, use for example [10up/action-wordpress-plugin-asset-update](https://github.com/10up/action-wordpress-plugin-asset-update) | ✅ Yes |
 | Dry run | Not yet | ✅ Yes |
+
+To update the `readme.txt` and `assets` directory on WordPress.org without a new release, use the companion action [solvebeam/action-wordpress-org-plugin-readme-deploy](https://github.com/solvebeam/action-wordpress-org-plugin-readme-deploy).
 
 **In short:** if you want your WordPress.org release to be the same artifact as your GitHub release, with safeguards that stop mistakes before they hit SVN, this action is for you.
 
@@ -113,6 +113,10 @@ jobs:
           tag: ${{ inputs.tag || github.event.release.tag_name }}
           slug: salesfeed
 ```
+
+## Related
+
+- https://github.com/solvebeam/action-wordpress-org-plugin-readme-deploy: deploy `readme.txt` and `assets` changes to WordPress.org without a new release.
 
 ## Inspiration
 
