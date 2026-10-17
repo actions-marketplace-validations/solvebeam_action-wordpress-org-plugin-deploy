@@ -10,6 +10,24 @@ use SolveBeam\GitHubActionsToolkit\Shell;
 use SolveBeam\GitHubActionsToolkit\Style;
 
 /**
+ * Add job summary.
+ *
+ * @link https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/workflow-commands-for-github-actions#adding-a-job-summary
+ * @link https://github.blog/news-insights/product-news/supercharging-github-actions-with-job-summaries/
+ * @param string $markdown
+ * @return void
+ */
+function add_job_summary( $markdown ) {
+	$file = getenv( 'GITHUB_STEP_SUMMARY' );
+
+	if ( false === $file || '' === $file ) {
+		return;
+	}
+
+	file_put_contents( $file, $markdown . PHP_EOL, FILE_APPEND );
+}
+
+/**
  * Default environment variables.
  * 
  * @link https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/variables#default-environment-variables
@@ -33,6 +51,12 @@ $tag = $core->get_required_input( 'tag' );
 $version = ltrim( $tag, 'v' );
 
 $svn_url = "https://plugins.svn.wordpress.org/$slug";
+
+$svn_url_tag = "$svn_url/tags/$version";
+
+$public_url  = "https://wordpress.org/plugins/$slug/";
+$trac_url    = "https://plugins.trac.wordpress.org/browser/$slug/";
+$release_url = "https://github.com/$repository/releases/tag/$tag";
 
 /**
  * Filename.
@@ -73,6 +97,10 @@ echo '• ', $style->bold( 'Subversion URL:' ), ' ', $svn_url, PHP_EOL;
 echo '• ', $style->bold( 'Subversion username:' ), ' ', $username, PHP_EOL;
 
 $core->end_group();
+
+$changes = [];
+
+$error = null;
 
 try {
 	/**
@@ -149,8 +177,6 @@ try {
 	 * Check tag existence.
 	 */
 	$core->start_group( '🔎 Check tag existence' );
-
-	$svn_url_tag = "$svn_url/tags/$version";
 
 	$result_code = $shell->run(
 		sprintf(
@@ -254,9 +280,13 @@ try {
 					)
 				);
 
+				$changes[] = [ '➖ Removed', $path ];
+
 				break;
 			case 'modified':
 				// Modified entry will be commited.
+
+				$changes[] = [ '✏️ Modified', $path ];
 
 				break;
 			case 'unversioned':
@@ -266,6 +296,8 @@ try {
 						escapeshellarg( $path . '@' )
 					)
 				);
+
+				$changes[] = [ '➕ Added', $path ];
 
 				break;
 			default:
@@ -323,5 +355,42 @@ try {
 
 	$core->end_group();
 } catch ( RuntimeException $e ) {
-	$core->set_failed( $e->getMessage() );
+	$error = $e->getMessage();
+}
+
+/**
+ * Job summary.
+ *
+ * Written before `set_failed()`, because that exits.
+ */
+$summary = [
+	"## Deploy $slug $version to WordPress.org",
+	'',
+	null === $error ? '✅ Deployed.' : "❌ Failed: $error",
+	'',
+	"- **GitHub release:** <$release_url>",
+	"- **Plugin:** <$public_url>",
+	"- **Subversion:** <$svn_url>",
+	"- **Subversion tag:** <$svn_url_tag>",
+	"- **Trac:** <$trac_url>",
+	'',
+	'### Subversion changes',
+	'',
+];
+
+if ( [] === $changes ) {
+	$summary[] = 'No changes.';
+} else {
+	$summary[] = '| Status | Path |';
+	$summary[] = '| --- | --- |';
+
+	foreach ( $changes as list( $status, $path ) ) {
+		$summary[] = "| $status | `$path` |";
+	}
+}
+
+add_job_summary( implode( PHP_EOL, $summary ) );
+
+if ( null !== $error ) {
+	$core->set_failed( $error );
 }

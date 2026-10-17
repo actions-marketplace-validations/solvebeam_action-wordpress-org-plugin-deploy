@@ -19,6 +19,7 @@ Most WordPress.org deploy actions, including the popular [10up/action-wordpress-
 - 🧹 **No side effects in your repository.** No `actions/checkout`, no build step, no temporary git commits by a bot user in your workspace.
 - 🐘 **Written in PHP, for WordPress developers.** The deploy logic is a readable PHP script instead of a bash script, so it's easy to understand, debug and contribute to.
 - 📋 **Tidy logs.** Every step runs in its own collapsible log group, so you can see right away where something went wrong.
+- 🧾 **Job summary.** Every run writes a summary with the result, links to the GitHub release, the plugin page, Subversion and Trac, and a table of the Subversion changes.
 - 🖼️ **Handles tricky filenames.** Files like `icon@2x.png` just work (no Subversion peg revision errors).
 
 ### Compared to 10up/action-wordpress-plugin-deploy
@@ -30,6 +31,7 @@ Most WordPress.org deploy actions, including the popular [10up/action-wordpress-
 | Checks `Stable tag` against the release version | ✅ Yes | ❌ No |
 | Version already on WordPress.org | ✅ Fails with a clear error | ❌ Exits green without deploying |
 | Redeploy an existing release from the UI | ✅ Built in (`workflow_dispatch` + `tag`) | Needs extra configuration |
+| Job summary with links and Subversion changes | ✅ Yes | ❌ No |
 | Credentials | Action inputs (`username` / `password`) | Environment variables (`SVN_USERNAME` / `SVN_PASSWORD`) |
 | Dry run | Not yet | ✅ Yes |
 
