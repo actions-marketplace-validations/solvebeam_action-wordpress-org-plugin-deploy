@@ -123,6 +123,12 @@ jobs:
           dry-run: ${{ inputs.dry-run || false }}
 ```
 
+## In the wild
+
+- [solvebeam/solvebeam-diagrams-with-mermaid-for-wordpress](https://github.com/solvebeam/solvebeam-diagrams-with-mermaid-for-wordpress) ([workflow](https://github.com/solvebeam/solvebeam-diagrams-with-mermaid-for-wordpress/blob/main/.github/workflows/deploy-to-wordpress-org.yml))
+
+Using this action in your plugin? Open a pull request to add it to this list.
+
 ## Related
 
 - https://github.com/solvebeam/action-wordpress-org-plugin-readme-deploy: deploy `readme.txt` and `assets` changes to WordPress.org without a new release.
