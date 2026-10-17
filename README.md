@@ -1,4 +1,4 @@
-# WordPress.org plugin deploy
+# SolveBeam WordPress.org Plugin Deploy
 
 **Ship the exact ZIP you released, nothing more and nothing less.**
 

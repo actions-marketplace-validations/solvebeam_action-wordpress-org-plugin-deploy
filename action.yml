@@ -1,6 +1,6 @@
-name: 'WordPress.org plugin deploy'
-description: 'Deploy release to the WordPress plugin directory.'
-author: 'solvebeam'
+name: 'SolveBeam WordPress.org Plugin Deploy'
+description: 'Deploy the exact ZIP from your GitHub release to the WordPress.org plugin directory. Checks first, never rebuilds.'
+author: 'SolveBeam'
 
 branding:
   icon: 'upload-cloud'
