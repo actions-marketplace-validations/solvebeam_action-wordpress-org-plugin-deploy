@@ -8,24 +8,7 @@ require __DIR__ . '/vendor/autoload.php';
 use SolveBeam\GitHubActionsToolkit\Core;
 use SolveBeam\GitHubActionsToolkit\Shell;
 use SolveBeam\GitHubActionsToolkit\Style;
-
-/**
- * Add job summary.
- *
- * @link https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/workflow-commands-for-github-actions#adding-a-job-summary
- * @link https://github.blog/news-insights/product-news/supercharging-github-actions-with-job-summaries/
- * @param string $markdown
- * @return void
- */
-function add_job_summary( $markdown ) {
-	$file = getenv( 'GITHUB_STEP_SUMMARY' );
-
-	if ( false === $file || '' === $file ) {
-		return;
-	}
-
-	file_put_contents( $file, $markdown . PHP_EOL, FILE_APPEND );
-}
+use SolveBeam\GitHubActionsToolkit\Summary;
 
 /**
  * Default environment variables.
@@ -363,33 +346,35 @@ try {
  *
  * Written before `set_failed()`, because that exits.
  */
-$summary = [
-	"## Deploy $slug $version to WordPress.org",
-	'',
-	null === $error ? '✅ Deployed.' : "❌ Failed: $error",
-	'',
-	"- **GitHub release:** <$release_url>",
-	"- **Plugin:** <$public_url>",
-	"- **Subversion:** <$svn_url>",
-	"- **Subversion tag:** <$svn_url_tag>",
-	"- **Trac:** <$trac_url>",
-	'',
-	'### Subversion changes',
-	'',
-];
+$summary = new Summary();
+
+$summary
+	->add_heading( "Deploy $slug $version to WordPress.org", 2 )
+	->add_eol()
+	->add_raw( null === $error ? '✅ Deployed.' : "❌ Failed: $error", true )
+	->add_eol()
+	->add_raw( "- **GitHub release:** <$release_url>", true )
+	->add_raw( "- **Plugin:** <$public_url>", true )
+	->add_raw( "- **Subversion:** <$svn_url>", true )
+	->add_raw( "- **Subversion tag:** <$svn_url_tag>", true )
+	->add_raw( "- **Trac:** <$trac_url>", true )
+	->add_eol()
+	->add_heading( 'Subversion changes', 3 )
+	->add_eol();
 
 if ( [] === $changes ) {
-	$summary[] = 'No changes.';
+	$summary->add_raw( 'No changes.', true );
 } else {
-	$summary[] = '| Status | Path |';
-	$summary[] = '| --- | --- |';
+	$summary
+		->add_raw( '| Status | Path |', true )
+		->add_raw( '| --- | --- |', true );
 
 	foreach ( $changes as list( $status, $path ) ) {
-		$summary[] = "| $status | `$path` |";
+		$summary->add_raw( "| $status | `$path` |", true );
 	}
 }
 
-add_job_summary( implode( PHP_EOL, $summary ) );
+$summary->write();
 
 if ( null !== $error ) {
 	$core->set_failed( $error );
