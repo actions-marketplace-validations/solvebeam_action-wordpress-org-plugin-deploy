@@ -108,10 +108,11 @@ jobs:
 
     environment:
       name: WordPress.org plugin directory
-      url: https://wordpress.org/plugins/solvebeam-diagrams-with-mermaid/
+      url: ${{ steps.deploy.outputs.public-url }}
 
     steps:
-      - name: Deploy
+      - id: deploy
+        name: Deploy
         uses: solvebeam/action-wordpress-org-plugin-deploy@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -136,6 +137,14 @@ This action follows [Semantic Versioning](https://semver.org/). The `v1` tag alw
 | `tag` | Yes | Release tag name, with or without a leading `v`. The GitHub release must contain a `{slug}.{version}.zip` asset. |
 | `slug` | Yes | WordPress.org plugin slug, for example `solvebeam-diagrams-with-mermaid`. |
 | `dry-run` | No | `true` to run every step except the Subversion commit and tag. Defaults to `false`. |
+
+### Outputs
+
+| Output | Description |
+| --- | --- |
+| `public-url` | Public URL of the plugin on WordPress.org, for example `https://wordpress.org/plugins/solvebeam-diagrams-with-mermaid/`. |
+| `svn-url` | Subversion repository URL of the plugin, for example `https://plugins.svn.wordpress.org/solvebeam-diagrams-with-mermaid`. |
+| `svn-tag-url` | Subversion URL of the deployed tag, for example `https://plugins.svn.wordpress.org/solvebeam-diagrams-with-mermaid/tags/1.2.3`. |
 
 ## In the wild
 

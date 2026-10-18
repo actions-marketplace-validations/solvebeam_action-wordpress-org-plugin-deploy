@@ -44,6 +44,13 @@ $trac_url    = "https://plugins.trac.wordpress.org/browser/$slug/";
 $release_url = "https://github.com/$repository/releases/tag/$tag";
 
 /**
+ * Outputs.
+ */
+$core->set_output( 'public-url', $public_url );
+$core->set_output( 'svn-url', $svn_url );
+$core->set_output( 'svn-tag-url', $svn_url_tag );
+
+/**
  * Filename.
  * 
  * Notation: “{name}.{version}”.

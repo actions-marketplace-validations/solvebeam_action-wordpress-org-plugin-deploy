@@ -43,6 +43,17 @@ inputs:
     required: false
     default: 'false'
 
+outputs:
+  public-url:
+    description: 'Public URL of the plugin on WordPress.org'
+    value: ${{ steps.deploy.outputs.public-url }}
+  svn-url:
+    description: 'Subversion repository URL of the plugin'
+    value: ${{ steps.deploy.outputs.svn-url }}
+  svn-tag-url:
+    description: 'Subversion URL of the deployed tag'
+    value: ${{ steps.deploy.outputs.svn-tag-url }}
+
 runs:
   using: 'composite'
   steps:
